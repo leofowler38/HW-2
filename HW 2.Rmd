@@ -1,0 +1,112 @@
+---
+title: "HW 2"
+author: "Leo Fowler"
+date: "2024-01-30"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r, include=FALSE}
+install.packages("ggplot2")
+install.packages("dplyr")
+library(ggplot2)
+library(dplyr)
+```
+
+#Problem 1
+
+```{r}
+setwd("~/downloads")
+profs <- read.csv("profs.csv")
+ggplot(data = profs, aes(x=eval)) + geom_histogram(bins = 30, color="black", fill="blue") + labs(x ='Evaluation Score', y='Frequency', title = 'Distribution of Professor Evaluation Score')
+```
+
+```{r}
+ggplot(data = profs, aes(x=eval, y=native)) + geom_boxplot(color="black", fill="blue") + labs(x ='Evaluation Score', y='Native English Speaker or Not', title = 'Distribution of Professor Evaluation Score Whether or Not They Speak English')
+```
+
+```{r}
+ggplot(data = profs, aes(x=eval)) + geom_histogram(bins = 30, color="black", fill="blue") + facet_grid(.~gender) + labs(x ='Evaluation Score', y='Frequency', title = 'Distribution of Professor Evaluation Score for Each Gender')
+```
+
+```{r}
+ggplot(data = profs, aes(x=beauty, y=eval)) + geom_point() + labs(x ='Attractiveness', y='Evaluation Score', title = 'Distribution of Professor Evaluation Score')
+```
+
+#Problem 2
+
+```{r}
+bike <- read.csv("bikeshare.csv")
+avgbike <- aggregate(total ~ hr, data = bike, mean)
+ggplot(data = avgbike, aes(x=hr, y=total)) + geom_line() + labs(x ='Hour of the Day', y='Average Bike Rentals', title = 'Distribution of Average Bike Rentals Per Hour of the Day')
+```
+
+```{r}
+avgworking <- aggregate(total ~ hr + workingday, data = bike, mean)
+mutworking <- mutate(avgworking, workingday = ifelse(workingday == 0, "Not Working", "Working"))
+ggplot(data = mutworking, aes(x=hr, y=total)) + geom_line() + facet_grid(.~workingday) + labs(x ='Hour of the Day', y='Average Bike Rentals', title = 'Distribution of Average Bike Rentals Per Hour of the Day Whether Its a Working Day')
+```
+
+```{r}
+avgweather <- bike %>%
+  filter(hr == 9) %>%
+  group_by(weathersit, workingday) %>%
+  summarise(avgtotal = mean(total))
+mutweather <- mutate(avgweather, workingday = ifelse(workingday == 1, "Not Working", "Working"))
+ggplot(mutweather, aes(x = factor(weathersit), y = avgtotal)) +
+  geom_bar(stat = "summary", fun = "mean", position = "dodge") +
+  facet_wrap(~workingday) + labs(x = "Weathersits", y = "Average Bike Rentals in Hour 9", title = "Average Bike Rentals in Hour 9 by Weathersit")
+```
+
+#Problem 3
+
+```{r}
+# Recode the categorical variables in sensible, rather than alphabetical, order
+metro = mutate(metro,
+day_of_week = factor(day_of_week,
+levels=c("Mon", "Tue", "Wed","Thu", "Fri", "Sat", "Sun")),
+month = factor(month,
+levels=c("Sep", "Oct","Nov")))
+metro <- read.csv("capmetro_UT.csv")
+avgboardings <- metro %>%
+  group_by(day_of_week, hour_of_day, month) %>%
+  summarise(averageboardings = mean(boarding, na.rm = TRUE))
+ggplot(avgboardings, aes(x = hour_of_day, y = averageboardings, group = month, color = month)) + geom_line() + facet_grid(day_of_week ~ ., scales="free") + labs(x = "Hour of the Day", y = "Average Boardings",title = "Average Boardings by Hour of the Day, Day of the Week, and Month")
+```
+
+```{r}
+ggplot(metro, aes(x = temperature, y = boarding, color = weekend)) + geom_point(size=.1) + facet_wrap(~hour_of_day, scales = "free") + labs(x = "Temperature (°F)", y = "Average Boardings", title = "Distribution of Average Boardings vs Temperature Per Hour of the Day")
+```
+
+#Problem 4
+
+```{r}
+billboard <- read.csv("billboard.csv")
+billtable <- billboard %>%
+  arrange(desc(weeks_on_chart)) %>%
+  distinct(song, .keep_all = TRUE) %>%
+  slice_head(n = 10) %>%
+  select(Performer=performer, Song=song, Weeks_On_Chart=weeks_on_chart)
+billtable
+```
+
+```{r}
+billmusic <- billboard %>%
+  filter(year != 1958 & year != 2021) %>%
+  group_by(year) %>%
+  summarise(uniquesongs = n_distinct(song))
+ggplot(billmusic, aes(x = year, y = uniquesongs)) + geom_line() + labs(x = "Year", y = "Number of Unique Songs", title = "Musical Diversity of Billboard Top 100 Over Many Years")
+```
+
+```{r}
+tenhits <- billboard %>%
+  group_by(performer, song) %>%
+  summarise(weeks_on_chart = n_distinct(week)) %>%
+  filter(weeks_on_chart >= 10) %>%
+  group_by(performer) %>%
+  summarise(tenhits = n_distinct(song)) %>%
+  filter(tenhits >= 30)
+ggplot(tenhits, aes(x = reorder(performer, -tenhits), y = tenhits)) + geom_bar(stat = "identity", fill = "skyblue") + labs(x = "Performer", y = "Number of Ten-Week Hits", title = "Artists with at Least 30 Ten-Week Hits on Billboard Top 100") + theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
